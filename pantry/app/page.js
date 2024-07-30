@@ -2,10 +2,10 @@
 
 import { Box, Stack, Typography, Button, Modal, Autocomplete, TextField } from "@mui/material";
 import { firestore } from "@/firebase";
-import { collection, getDocs, query } from "firebase/firestore";
+import { collection, getDocs, query, setDoc, doc } from "firebase/firestore";
 import { useEffect, useState } from "react";
 
-const style = {             // 100% edit
+const style = {
   position: 'absolute',
   top: '50%',
   left: '50%',
@@ -17,39 +17,49 @@ const style = {             // 100% edit
   p: 4,
 };
 
-const foodSuggestions = []
+const foodSuggestions = ['potato', 'tomato', 'banana', 'bread'];
 
 export default function Home() {
-  const [pantry, setPantry] = useState([]); 
-
+  const [pantry, setPantry] = useState([]);
   const [open, setOpen] = useState(false);
+  const [itemName, setItemName] = useState('');
+
   const handleOpen = () => setOpen(true);
   const handleClose = () => setOpen(false);
 
-  useEffect(() => {
-    const updatePantry = async () => {
-      try {
-        const snapshot = query(collection(firestore, 'pantry'));
-        const docs = await getDocs(snapshot);
-        const pantryList = docs.docs.map(doc => doc.id);
-        console.log(pantryList)
-        setPantry(pantryList);
-      } catch (error) {
-        console.error("Error fetching pantry data:", error);
-      }
-    };
+  const updatePantry = async () => {
+    try {
+      const snapshot = query(collection(firestore, 'pantry'));
+      const docs = await getDocs(snapshot);
+      const pantryList = docs.docs.map(doc => doc.id);
+      console.log(pantryList);
+      setPantry(pantryList);
+    } catch (error) {
+      console.error("Error fetching pantry data:", error);
+    }
+  };
 
+  useEffect(() => {
     updatePantry();
   }, []);
-  
+
+  const addItem = async (item) => {
+    try {
+      await setDoc(doc(collection(firestore, 'pantry'), item), { name: item });
+      updatePantry();
+    } catch (error) {
+      console.error("Error adding item:", error);
+    }
+  };
+
   return (
     <Box
       width="100vw"
       height="100vh"
-      display={'flex'}
-      justifyContent={'center'}
-      flexDirection={'column'}
-      alignItems={'center'}
+      display="flex"
+      justifyContent="center"
+      flexDirection="column"
+      alignItems="center"
       gap={2}
     >
       <Modal
@@ -64,33 +74,57 @@ export default function Home() {
           </Typography>
           <Stack spacing={2} sx={{ width: 300 }}>
             <Autocomplete
-              id="free-solo-demo"
               freeSolo
-              options={foodSuggestions.map((option) => option.title)}
-              renderInput={(params) => <TextField {...params} label="Search Item" />}
+              id="free-solo-2-demo"
+              disableClearable
+              options={foodSuggestions}
+              value={itemName}
+              onChange={(event, newValue) => {
+                setItemName(newValue || '');
+              }}
+              onInputChange={(event, newInputValue) => {
+                setItemName(newInputValue);
+              }}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Search input"
+                  InputProps={{
+                    ...params.InputProps,
+                    type: 'search',
+                  }}
+                />
+              )}
             />
+            <Button
+              variant="contained"
+              onClick={() => {
+                if (itemName.trim()) {
+                  addItem(itemName);
+                  setItemName('');
+                  handleClose();
+                }
+              }}
+            >
+              Add
+            </Button>
           </Stack>
         </Box>
       </Modal>
-      <Button 
-        variant="contained"
-        onClick={handleOpen}
-      >Add</Button>
-      <Box
-        border={'1px solid #333'}
-      >
+      <Button variant="contained" onClick={handleOpen}>Add</Button>
+      <Box border="1px solid #333">
         <Box
           width="800px"
           height="100px"
-          bgcolor={'#add8e6'}
-          display={'flex'}
-          justifyContent={'center'}
-          alignItems={'center'}
+          bgcolor="#add8e6"
+          display="flex"
+          justifyContent="center"
+          alignItems="center"
         >
           <Typography
-            variant={'h2'}
-            color={'#333'}
-            textAlign={'center'}   
+            variant="h2"
+            color="#333"
+            textAlign="center"
           >
             Pantry Items
           </Typography>
@@ -99,24 +133,24 @@ export default function Home() {
           width="800px"
           height="200px"
           spacing={2}
-          overflow={'auto'}
+          overflow="auto"
         >
           {pantry.map((i) => (
-            <Box 
+            <Box
               key={i}
               width="100%"
               height="300px"
-              display={'flex'}
-              justifyContent={'center'}
-              alignItems={'center'}
-              bgcolor={'#f0f0f0'}
+              display="flex"
+              justifyContent="center"
+              alignItems="center"
+              bgcolor="#f0f0f0"
             >
               <Typography
-                variant={'h3'}
-                color={'#333'}
-                textAlign={'center'}
+                variant="h3"
+                color="#333"
+                textAlign="center"
               >
-                {i.charAt(0).toLocaleUpperCase() + i.slice(1).toLowerCase()}
+                {i.charAt(0).toUpperCase() + i.slice(1).toLowerCase()}
               </Typography>
             </Box>
           ))}
