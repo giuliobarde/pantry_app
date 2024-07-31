@@ -2,11 +2,11 @@ import axios from 'axios';
 
 class ApiService {
     constructor() {
-        this.apiKey = process.env.NEXT_PUBLIC_OPENROUTER_API_KEY; // Ensure to prefix with NEXT_PUBLIC_ for client-side use
+        this.apiKey = process.env.REACT_APP_OPENROUTER_API_KEY || process.env.NEXT_PUBLIC_OPENROUTER_API_KEY;
         this.apiUrl = 'https://openrouter.ai/api/v1/chat/completions';
 
         if (!this.apiKey) {
-            throw new Error('API key is missing. Please set NEXT_PUBLIC_OPENROUTER_API_KEY in your .env.local file.');
+            throw new Error('API key is missing. Please set REACT_APP_OPENROUTER_API_KEY or NEXT_PUBLIC_OPENROUTER_API_KEY in your environment.');
         }
 
         this.client = axios.create({
@@ -23,7 +23,7 @@ class ApiService {
             const response = await this.client.post(
                 '',
                 {
-                    prompt: `Suggest recipes based on these ingredients: ${ingredients.join(', ')}`,
+                    prompt: `Suggest a singular recipes based only on the following: ${ingredients.join(', ')}`,
                 }
             );
             return response.data;

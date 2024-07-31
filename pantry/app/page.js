@@ -37,12 +37,18 @@ const Page = () => {
   };
 
   const handleRecipesSearch = async () => {
-    const ingredients = ['tomato', 'cheese', 'basil']; // Test ingredients
+    console.log('starting query')
+
+    const ingredients = pantry.map(item => item.name.toLowerCase());
     try {
-      const recipeSuggestions = await apiService.fetchRecipeSuggestions(ingredients);
-      console.log('Recipe Suggestions:', recipeSuggestions);
+      const response = await apiService.fetchRecipeSuggestions(ingredients);
+
+      const recipeSuggestions = response.choices && response.choices.length > 0
+          ? response.choices[0].text
+          : 'No recipes found';
+        console.log('Recipe Suggestions:', recipeSuggestions);
     } catch (error) {
-      console.error('Failed to fetch recipe suggestions:', error);
+        console.error('Failed to fetch recipe suggestions:', error);
     }
   };
 
@@ -238,6 +244,7 @@ const Page = () => {
             paddingX={2}
           >
           <Button variant="contained" onClick={handleOpen}>Add Items</Button>
+          <Button variant="contained" onClick={handleRecipesSearch}>Search Recipes</Button>
           </Box>
           <Box border="1px solid #333">
             <Box
