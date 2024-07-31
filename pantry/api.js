@@ -23,7 +23,14 @@ class ApiService {
             const response = await this.client.post(
                 '',
                 {
-                    prompt: `Suggest a singular recipes based only on the following: ${ingredients.join(', ')}`,
+                    prompt: `Suggest a single recipe that uses only,
+                     but not necessarily all, of the following ingredients. 
+                     The recipe should be concise and contain only the 
+                     listed ingredients. Please ensure the recipe output 
+                     does not exceed 4096 tokens and includes only the recipe 
+                     itself. Do not include any part of this prompt in the 
+                     response. The ingredients are: ${ingredients.join(', ')}
+                    `,
                 }
             );
             return response.data;
