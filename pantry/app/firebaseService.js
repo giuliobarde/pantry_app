@@ -1,5 +1,5 @@
 import { firestore, auth } from "@/firebase";
-import { collection, query, getDocs, onSnapshot, setDoc, doc, deleteDoc, getDoc, where } from "firebase/firestore";
+import { collection, query, getDocs, onSnapshot, setDoc, doc, deleteDoc, getDoc, where, updateDoc } from "firebase/firestore";
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
 
 // Fetch food suggestions in real-time
@@ -14,40 +14,75 @@ export const fetchFoodSuggestions = (callback) => {
 };
 
 // Add item to pantry
-export const addItemToPantry = async (item, count = 1, userId) => {
+export const addItemToPantry = async (item, count = 1, userId, expirationDate) => {
   try {
-    const pantryRef = doc(collection(firestore, 'pantry'), `${userId}_${item}`);
-    const pantrySnap = await getDoc(pantryRef);
-    if (pantrySnap.exists()) {
-      const currentCount = pantrySnap.data().count;
-      await setDoc(pantryRef, { count: currentCount + count }, { merge: true });
-    } else {
-      await setDoc(pantryRef, { count });
+    // Ensure expirationDate is a Date object
+    if (!(expirationDate instanceof Date)) {
+      throw new Error("Invalid expiration date format.");
     }
 
-    const itemsRef = doc(collection(firestore, 'items'), item);
-    const itemsSnap = await getDoc(itemsRef);
-    if (!itemsSnap.exists()) {
-      await setDoc(itemsRef, {});
+    const pantryRef = collection(firestore, 'pantry');
+    const itemQuery = query(pantryRef, where("name", "==", item), where("userId", "==", userId));
+    const querySnapshot = await getDocs(itemQuery);
+
+    const expirationDateStr = expirationDate.toISOString(); // Convert to string for comparison
+
+    if (!querySnapshot.empty) {
+      const existingItem = querySnapshot.docs[0];
+      const data = existingItem.data();
+      const newVersions = data.versions || [];
+
+      const versionIndex = newVersions.findIndex(version => version.expirationDate === expirationDateStr);
+
+      if (versionIndex >= 0) {
+        // Update existing version
+        newVersions[versionIndex].quantity += count;
+      } else {
+        // Add new version
+        newVersions.push({ quantity: count, expirationDate: expirationDateStr });
+      }
+
+      await updateDoc(existingItem.ref, { versions: newVersions });
+    } else {
+      // Create new item
+      const newItem = {
+        name: item,
+        count,
+        versions: [{ quantity: count, expirationDate: expirationDateStr }],
+        userId
+      };
+      await setDoc(doc(pantryRef, `${userId}_${item}`), newItem);
     }
   } catch (error) {
-    console.error("Error adding item:", error);
+    console.error("Error adding item to pantry:", error);
   }
 };
 
-// Remove item from pantry
-export const removeItemFromPantry = async (item, userId) => {
+// Remove specific version of an item from pantry
+export const removeItemFromPantry = async (itemName, userId, expirationDate) => {
   try {
-    const docRef = doc(collection(firestore, 'pantry'), `${userId}_${item}`);
-    const docSnap = await getDoc(docRef);
-    if (docSnap.exists()) {
-      const currentCount = docSnap.data().count;
-      if (currentCount === 1) {
-        await deleteDoc(docRef);
-      } else {
-        await setDoc(docRef, { count: currentCount - 1 }, { merge: true });
-      }
+    if (!(expirationDate instanceof Date)) {
+      throw new Error("Invalid expiration date format.");
     }
+
+    const pantryRef = collection(firestore, 'pantry');
+    const itemQuery = query(pantryRef, where("name", "==", itemName), where("userId", "==", userId));
+    const querySnapshot = await getDocs(itemQuery);
+
+    const expirationDateStr = expirationDate.toISOString(); // Convert to string for comparison
+
+    querySnapshot.forEach(async (doc) => {
+      const data = doc.data();
+      if (data.versions) {
+        const updatedVersions = data.versions.filter(version => version.expirationDate !== expirationDateStr);
+
+        if (updatedVersions.length === 0) {
+          await deleteDoc(doc.ref);
+        } else {
+          await updateDoc(doc.ref, { versions: updatedVersions });
+        }
+      }
+    });
   } catch (error) {
     console.error("Error removing item:", error);
   }
@@ -83,11 +118,9 @@ export const signInUser = async (identifier, password) => {
   try {
     let userEmail;
 
-    // Determine the email based on identifier
     if (identifier.includes('@')) {
       userEmail = identifier;
     } else {
-      // Fetch the email associated with the username
       const userQuery = query(collection(firestore, "users"), where("username", "==", identifier));
       const querySnapshot = await getDocs(userQuery);
 
@@ -99,11 +132,9 @@ export const signInUser = async (identifier, password) => {
       userEmail = userDoc.data().email;
     }
 
-    // Sign in with email and password
     const res = await signInWithEmailAndPassword(auth, userEmail, password);
     sessionStorage.setItem('user', true);
 
-    // Fetch user document
     const userDoc = await getDoc(doc(firestore, "users", res.user.uid));
     if (userDoc.exists()) {
       const userData = userDoc.data();

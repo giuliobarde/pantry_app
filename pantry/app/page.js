@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Box, Stack, Typography, Button, Modal, Autocomplete, TextField, useMediaQuery, CircularProgress } from "@mui/material";
+import { Box, Stack, Typography, Button, Modal, Autocomplete, TextField, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions } from "@mui/material";
 import { fetchFoodSuggestions, addItemToPantry, removeItemFromPantry, listenToPantry } from "@/app/firebaseService";
 import ApiService from '@/api';
 import { useAuthState } from "react-firebase-hooks/auth";
@@ -9,6 +9,8 @@ import { auth } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { Navbar } from 'react-bootstrap';
 import { signOut } from 'firebase/auth';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import { LocalizationProvider, DatePicker as MuiDatePicker } from '@mui/x-date-pickers';
 
 const Page = () => {
   const [user] = useAuthState(auth);
@@ -19,22 +21,13 @@ const Page = () => {
   const [open, setOpen] = useState(false);
   const [itemName, setItemName] = useState('');
   const [itemCount, setItemCount] = useState(1);
+  const [itemExpirationDate, setItemExpirationDate] = useState(null);
   const [loading, setLoading] = useState(false);
   const [recipeSuggestions, setRecipeSuggestions] = useState('');
+  const [selectedItem, setSelectedItem] = useState(null);
+  const [itemDetailsOpen, setItemDetailsOpen] = useState(false);
 
   const apiService = new ApiService();
-
-  useEffect(() => {
-    if (!user && sessionStorage.getItem('user') === null) {
-      setRedirectToSignIn(true);
-    }
-  }, [user]);
-
-  useEffect(() => {
-    if (redirectToSignIn) {
-      router.push('/sign-in');
-    }
-  }, [redirectToSignIn, router]);
 
   useEffect(() => {
     if (user) {
@@ -49,14 +42,29 @@ const Page = () => {
     }
   }, [user]);
 
+  useEffect(() => {
+    if (redirectToSignIn) {
+      router.push('/sign-in');
+    }
+  }, [redirectToSignIn, router]);
+
+  useEffect(() => {
+    if (!user && sessionStorage.getItem('user') === null) {
+      setRedirectToSignIn(true);
+    }
+  }, [user]);
+
   const handleOpen = () => setOpen(true);
-  const handleClose = () => setOpen(false);
+  const handleClose = () => {
+    setOpen(false);
+    setItemName('');
+    setItemCount(1);
+    setItemExpirationDate(null);
+  };
 
   const handleAddItem = async () => {
     if (itemName.trim() && itemCount > 0 && user) {
-      await addItemToPantry(itemName, itemCount, user.uid);
-      setItemName('');
-      setItemCount(1);
+      await addItemToPantry(itemName, itemCount, user.uid, itemExpirationDate);
       handleClose();
     }
   };
@@ -67,7 +75,7 @@ const Page = () => {
       setRecipeSuggestions('');
 
       // Extract item names from pantry state
-      const ingredients = pantry.map(item => item.name.toLowerCase());
+      const ingredients = pantry.flatMap(item => item.versions.map(v => v.name.toLowerCase()));
 
       try {
         const response = await apiService.fetchRecipeSuggestions(ingredients);
@@ -108,7 +116,15 @@ const Page = () => {
     }
   };
 
-  const isMobile = useMediaQuery('(max-width:850px)');
+  const handleItemClick = (item) => {
+    setSelectedItem(item);
+    setItemDetailsOpen(true);
+  };
+
+  const handleCloseItemDetails = () => {
+    setItemDetailsOpen(false);
+    setSelectedItem(null);
+  };
 
   return (
     <Box
@@ -126,8 +142,7 @@ const Page = () => {
         style={{ 
           position: 'fixed', 
           top: 0, 
-          width: '100%',
-          height: '70px', 
+          width: '100%', 
           zIndex: 1000,
           backgroundColor: 'black',
           padding: '0 16px',
@@ -137,7 +152,7 @@ const Page = () => {
         }}
       >
         <Typography
-          variant="h5"
+          variant="h6"
           style={{ color: 'white', fontWeight: 'bold' }}
         >
           Pantr<span style={{ color: '#1976d2' }}>AI</span>
@@ -145,7 +160,7 @@ const Page = () => {
         <Button 
           variant="contained" 
           onClick={handleSignOut}
-          style={{ padding: '8px 16px'}}
+          style={{ padding: '8px 16px' }}
         >
           Log out
         </Button>
@@ -199,6 +214,14 @@ const Page = () => {
                   sx={{ width: 100 }}
                 />
               </Box>
+              <LocalizationProvider dateAdapter={AdapterDateFns}>
+                <MuiDatePicker
+                  label="Expiration Date"
+                  value={itemExpirationDate}
+                  onChange={(newValue) => setItemExpirationDate(newValue)}
+                  renderInput={(params) => <TextField {...params} fullWidth />}
+                />
+              </LocalizationProvider>
               <Button variant="contained" onClick={handleAddItem} sx={{ alignSelf: 'flex-start' }}>
                 Add
               </Button>
@@ -228,14 +251,14 @@ const Page = () => {
             <Box
               width="800px"
               height="100px"
-              bgcolor="#add8e6"
+              bgcolor="#1976d2"
               display="flex"
               justifyContent="center"
               alignItems="center"
             >
               <Typography
                 variant="h2"
-                color="#333"
+                color="#fff"
                 textAlign="center"
               >
                 Pantry Items
@@ -247,32 +270,39 @@ const Page = () => {
               spacing={2}
               overflow="auto"
             >
-              {pantry.map((i) => (
+              {pantry && Array.isArray(pantry) && pantry.map((item) => (
                 <Box
-                  key={i.name}
+                  key={item.id}
                   width="100%"
-                  height="300px"
+                  height="auto"
                   display="flex"
-                  justifyContent="space-between"
+                  flexDirection="column"
                   padding={2}
-                  alignItems="center"
                   bgcolor="#f0f0f0"
+                  onClick={() => handleItemClick(item)}
                 >
                   <Typography
                     variant="h3"
                     color="#333"
                     textAlign="center"
                   >
-                    {i.name.charAt(0).toUpperCase() + i.name.slice(1).toLowerCase()}
+                    {item.name.charAt(0).toUpperCase() + item.name.slice(1).toLowerCase()}
                   </Typography>
-                  <Typography
-                    variant="h3"
-                    color="#333"
-                    textAlign="center"
+                  {item.versions && Array.isArray(item.versions) && item.versions.map((version) => (
+                    <Box key={version.id} display="flex" justifyContent="space-between" paddingY={1}>
+                      <Typography>{`Quantity: ${version.quantity}`}</Typography>
+                      <Typography>{`Expiration Date: ${version.expirationDate ? new Date(version.expirationDate).toLocaleDateString() : 'N/A'}`}</Typography>
+                    </Box>
+                  ))}
+                  <Button 
+                    variant="contained" 
+                    onClick={(e) => { 
+                      e.stopPropagation(); 
+                      removeItemFromPantry(item.name, user.uid, version.expirationDate); 
+                    }}
                   >
-                    x{i.count}
-                  </Typography>
-                  <Button variant="contained" onClick={async () => await removeItemFromPantry(i.name, user.uid)}>Remove</Button>
+                    Remove
+                  </Button>
                 </Box>
               ))}
             </Stack>
@@ -299,8 +329,34 @@ const Page = () => {
           )}
         </Box>
       </Box>
+      <Dialog
+        open={itemDetailsOpen}
+        onClose={handleCloseItemDetails}
+        fullWidth
+        maxWidth="lg"
+        sx={{ padding: '16px' }}
+      >
+        <DialogTitle>Item Details</DialogTitle>
+        <DialogContent sx={{ padding: '24px' }}>
+          {selectedItem && (
+            <Box>
+              <Typography variant="h6" marginBottom={2}>{selectedItem.name}</Typography>
+              {selectedItem.versions && Array.isArray(selectedItem.versions) && selectedItem.versions.map((version) => (
+                <Box key={version.id} display="flex" justifyContent="space-between" paddingY={1}>
+                  <Typography>{`Quantity: ${version.quantity}`}</Typography>
+                  <Typography>{`Expiration Date: ${version.expirationDate ? new Date(version.expirationDate).toLocaleDateString() : 'N/A'}`}</Typography>
+                </Box>
+              ))}
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseItemDetails}>Close</Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };
 
 export default Page;
+
