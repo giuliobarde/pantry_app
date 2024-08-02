@@ -1,7 +1,6 @@
 "use client";
 
 import Alert from '@mui/material/Alert';
-
 import React, { useState, useEffect } from 'react';
 import { Box, Stack, Typography, Button, Modal, Autocomplete, TextField, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions } from "@mui/material";
 import { fetchFoodSuggestions, addItemToPantry, removeItemFromPantry, listenToPantry } from "@/app/firebaseService";
@@ -98,8 +97,15 @@ const Page = () => {
       const ingredients = pantry.flatMap(item =>
         item.versions?.map(v => v.name?.toLowerCase() || '') || []
       );
+
+      // Debugging output
+      console.log("Extracted ingredients:", ingredients);
+
       try {
         const response = await apiService.fetchRecipeSuggestions(ingredients);
+
+        // Debugging output
+        console.log("API response:", response);
 
         // Extract and clean recipe suggestions from the response
         const recipeSuggestions = response.choices && response.choices.length > 0
@@ -258,200 +264,34 @@ const Page = () => {
                 InputProps={{ inputProps: { min: 1 } }}
                 sx={{ width: '100px', maxWidth: 100 }}
               />
+              <LocalizationProvider dateAdapter={AdapterDateFns}>
+                <MuiDatePicker
+                  label="Expiration Date"
+                  value={itemExpirationDate}
+                  onChange={(date) => setItemExpirationDate(date)}
+                  renderInput={(params) => <TextField {...params} sx={{ width: '200px', maxWidth: 100 }} />}
+                />
+              </LocalizationProvider>
             </Box>
-            <LocalizationProvider dateAdapter={AdapterDateFns}>
-              <MuiDatePicker
-                label="Expiration Date"
-                value={itemExpirationDate}
-                onChange={(newValue) => setItemExpirationDate(newValue)}
-                renderInput={(params) => <TextField {...params} fullWidth />}
-              />
-            </LocalizationProvider>
-            <Button variant="contained" onClick={handleAddItem} sx={{ alignSelf: { xs: 'stretch', sm: 'flex-start' } }}>
+            <Button variant="contained" onClick={handleAddItem}>
               Add
             </Button>
           </Stack>
         </Box>
       </Modal>
-        <Box
-          display="flex"
-          flexDirection="column"
-          gap={2}
-          width="100%"
-          alignItems="center"
-          sx={{
-            '@media (max-width: 600px)': {
-              flexDirection: 'column'
-            }
-          }}
-        >
-          <Box
-            display="flex"
-            flexDirection="column"
-            gap={2}
-            width="100%"
-            alignItems="center"
-            sx={{
-              '@media (max-width: 600px)': {
-                gap: 1
-              }
-            }}
-          >
-            <Box
-              display="flex"
-              flexDirection={{ xs: 'column', sm: 'row' }}
-              gap={2}
-              width="100%"
-              alignItems="center"
-              sx={{ 
-                maxWidth: '500px',
-                flexDirection: { xs: 'column', sm: 'row' }
-              }}
-            >
-              <Button 
-                variant="contained" 
-                onClick={handleOpen}
-                sx={{ width: { xs: '100%', sm: '150px', maxWidth: '150px' } }}
-              >
-                Add Items
-              </Button>
-              <TextField
-                label="Search Pantry"
-                variant="outlined"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                sx={{ flexGrow: 1 }}
-              />
-            </Box>
-          </Box>
-          <Box
-            border="1px solid #333"
-            width="100%"
-            maxWidth="800px"
-            minHeight="300px"  // Ensure minimum height of 300px
-            maxHeight="400px"  // Optional: Limit the height to 400px for more consistent behavior
-            sx={{
-              '@media (max-width: 600px)': {
-                marginTop: 2
-              }
-            }}
-          >
-            <Box
-              width="100%"
-              height="100px"
-              bgcolor="#1976d2"
-              display="flex"
-              justifyContent="center"
-              alignItems="center"
-            >
-              <Typography
-                variant="h3"
-                color="#fff"
-                textAlign="center"
-              >
-                Pantry Items
-              </Typography>
-            </Box>
-            <Stack
-              width="100%"
-              maxWidth="800px"
-              spacing={2}
-              overflow="auto"
-              sx={{ height: 'calc(100% - 100px)' }} // Ensure content area fills remaining space
-            >
-              {filteredPantry && Array.isArray(filteredPantry) && filteredPantry.map((item) => (
-                <Box
-                  key={item.id}
-                  width="100%"
-                  height="auto"
-                  display="flex"
-                  flexDirection="row"
-                  justifyContent={'space-between'}
-                  padding={2}
-                  bgcolor="#f0f0f0"
-                  onClick={() => handleItemClick(item)}
-                >
-                  <Box
-                    display="flex"
-                    flexDirection="column"
-                  >
-                    <Typography
-                      variant="h5"
-                      color="#333"
-                      textAlign="center"
-                    >
-                      {item.name.charAt(0).toUpperCase() + item.name.slice(1).toLowerCase()}
-                    </Typography>
-                    {item.versions && Array.isArray(item.versions) && (
-                      <Box display="flex" justifyContent="space-between" paddingY={1}>
-                        <Typography>{`Quantity: ${item.versions?.reduce((sum, version) => sum + version.quantity, 0) || 0}`}</Typography>
-                      </Box>
-                    )}
-                  </Box>
-                  <Button 
-                    variant="contained"
-                    onClick={(e) => { 
-                      e.stopPropagation();
-                      const sortedVersions = item.versions.sort((a, b) => new Date(a.expirationDate) - new Date(b.expirationDate));
-                      const closestVersion = sortedVersions[0];
-                      removeItemFromPantry(item.name, 1, user.uid, closestVersion.expirationDate); 
-                    }}
-                  >
-                    Remove
-                  </Button>
-                </Box>
-              ))}
-            </Stack>
-          </Box>
-          <Button 
-            variant="contained" 
-            onClick={handleRecipesSearch}
-            sx={{ width: '100%', maxWidth: '300px', marginTop: 2 }}
-          >
-            Search Recipes
-          </Button>
-          {loading ? (
-            <Box display="flex" justifyContent="center" alignItems="center" gap={2}>
-              <CircularProgress />
-              <Typography variant="h6">Generating recipe...</Typography>
-            </Box>
-          ) : (
-            recipeSuggestions && (
-              <Box 
-                border="1px solid #333" 
-                padding={2} 
-                width="100%" 
-                maxWidth="800px" 
-                bgcolor="#f9f9f9"
-                maxHeight="400px"
-                overflow="auto"
-                sx={{ marginTop: 2 }}
-              >
-                <Typography variant="h5">Recipe Suggestions:</Typography>
-                <Typography>{recipeSuggestions}</Typography>
-              </Box>
-            )
-          )}
-        </Box>
-      </Box>
+      
       <Dialog
         open={itemDetailsOpen}
         onClose={handleCloseItemDetails}
-        fullWidth
-        maxWidth="lg"
-        sx={{ padding: '16px' }}
+        aria-labelledby="dialog-title"
       >
-        <DialogTitle>Item Details</DialogTitle>
-        <DialogContent sx={{ padding: '24px' }}>
+        <DialogTitle id="dialog-title">Item Details</DialogTitle>
+        <DialogContent>
           {selectedItem && (
             <Box>
-              <Typography variant="h6" marginBottom={2}>{selectedItem.name}</Typography>
-              {selectedItem.versions && Array.isArray(selectedItem.versions) && selectedItem.versions.map((version) => (
-                <Box key={version.id} display="flex" justifyContent="space-between" paddingY={1}>
-                  <Typography>{`Quantity: ${version.quantity}`}</Typography>
-                  <Typography>{`Expiration Date: ${version.expirationDate ? new Date(version.expirationDate).toLocaleDateString() : 'N/A'}`}</Typography>
-                </Box>
-              ))}
+              <Typography variant="h6">Item Name: {selectedItem.name}</Typography>
+              <Typography>Quantity: {selectedItem.quantity}</Typography>
+              <Typography>Expiration Date: {selectedItem.expirationDate || 'N/A'}</Typography>
             </Box>
           )}
         </DialogContent>
@@ -459,6 +299,58 @@ const Page = () => {
           <Button onClick={handleCloseItemDetails}>Close</Button>
         </DialogActions>
       </Dialog>
+      
+      <Box width="100%" display="flex" justifyContent="space-between" alignItems="center" gap={2}>
+        <TextField
+          label="Search Pantry"
+          variant="outlined"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          fullWidth
+        />
+        <Button
+          variant="contained"
+          onClick={handleOpen}
+        >
+          Add Item
+        </Button>
+        <Button
+          variant="contained"
+          onClick={handleRecipesSearch}
+          disabled={loading}
+        >
+          {loading ? <CircularProgress size={24} /> : 'Find Recipes'}
+        </Button>
+      </Box>
+
+      <Box width="100%">
+        {filteredPantry.map(item => (
+          <Box 
+            key={item.id}
+            onClick={() => handleItemClick(item)}
+            sx={{
+              cursor: 'pointer',
+              padding: 2,
+              borderBottom: '1px solid #ddd',
+              '&:hover': {
+                backgroundColor: '#f5f5f5'
+              }
+            }}
+          >
+            <Typography variant="body1" component="div">
+              {item.name} - {item.quantity} (Expires on: {item.expirationDate || 'N/A'})
+            </Typography>
+          </Box>
+        ))}
+      </Box>
+      
+      {recipeSuggestions && (
+        <Box width="100%" mt={2}>
+          <Typography variant="h6">Recipe Suggestions:</Typography>
+          <Typography>{recipeSuggestions}</Typography>
+        </Box>
+      )}
+    </Box>
     </Box>
   );
 };
