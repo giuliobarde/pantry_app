@@ -23,6 +23,7 @@
     "next": "^14.2.5",
     "openai": "^4.54.0",
     "react": "^18",
+    "react-bootstrap": "^2.10.4",
     "react-dom": "^18",
     "react-firebase-hooks": "^5.1.1",
     "reactfire": "^4.2.3"
@@ -32,4 +33,3 @@
     "eslint-config-next": "14.2.5"
   }
 }
-
