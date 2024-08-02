@@ -84,12 +84,18 @@ const Page = () => {
 
   const handleRecipesSearch = async () => {
     if (user) {
+      if (pantry.length === 0) {
+        window.location.href = 'https://www.google.com/maps/search/restaurants';
+        return;
+      }
+
       setLoading(true);
       setRecipeSuggestions('');
 
       // Extract item names from pantry state
-      const ingredients = pantry.flatMap(item => item.versions.map(v => v.name.toLowerCase()));
-
+      const ingredients = pantry.flatMap(item =>
+        item.versions?.map(v => v.name?.toLowerCase() || '') || []
+      );
       try {
         const response = await apiService.fetchRecipeSuggestions(ingredients);
 
@@ -179,98 +185,157 @@ const Page = () => {
           Log out
         </Button>
       </Navbar>
-      <Box sx={{ paddingTop: '56px', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-        <Modal
-          open={open}
-          onClose={handleClose}
-          aria-labelledby="modal-modal-title"
-          aria-describedby="modal-modal-description"
+      <Box 
+        sx={{ 
+          paddingTop: '70px', 
+          width: '100%', 
+          display: 'flex', 
+          flexDirection: 'column', 
+          alignItems: 'center', 
+          overflow: 'auto',
+          gap: 2,
+          '@media (max-width: 600px)': {
+            paddingTop: '60px'
+          }
+        }}
+      >
+      <Modal
+        open={open}
+        onClose={handleClose}
+        aria-labelledby="modal-modal-title"
+        aria-describedby="modal-modal-description"
+      >
+        <Box 
+          sx={{ 
+            position: 'absolute', 
+            top: '50%', 
+            left: '50%', 
+            transform: 'translate(-50%, -50%)', 
+            width: { xs: '90%', sm: 500 }, // Adjust width based on screen size
+            maxWidth: 500, // Ensure modal doesn't grow too large
+            bgcolor: 'background.paper', 
+            border: '2px solid #000', 
+            boxShadow: 24, 
+            p: 4 
+          }}
         >
-          <Box 
-            sx={{ 
-              position: 'absolute', 
-              top: '50%', 
-              left: '50%', 
-              transform: 'translate(-50%, -50%)', 
-              width: 500, 
-              bgcolor: 'background.paper', 
-              border: '2px solid #000', 
-              boxShadow: 24, 
-              p: 4 
-            }}
-          >
-            <Typography id="modal-modal-title" variant="h6" component="h2">Add Item</Typography>
-            <Stack spacing={2} sx={{ width: '100%' }}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Autocomplete
-                  freeSolo
-                  id="free-solo-2-demo"
-                  disableClearable
-                  options={foodOptions}
-                  value={itemName}
-                  onChange={(event, newValue) => setItemName(newValue || '')}
-                  onInputChange={(event, newInputValue) => setItemName(newInputValue)}
-                  renderInput={(params) => (
-                    <TextField
-                      {...params}
-                      label="Item"
-                      InputProps={{ ...params.InputProps, type: 'search' }}
-                      sx={{ width: 300, flex: 1 }}
-                    />
-                  )}
-                />
-                <TextField
-                  label="Count"
-                  type="number"
-                  value={itemCount}
-                  onChange={(e) => setItemCount(Number(e.target.value))}
-                  InputProps={{ inputProps: { min: 1 } }}
-                  sx={{ width: 100 }}
-                />
-              </Box>
-              <LocalizationProvider dateAdapter={AdapterDateFns}>
-                <MuiDatePicker
-                  label="Expiration Date"
-                  value={itemExpirationDate}
-                  onChange={(newValue) => setItemExpirationDate(newValue)}
-                  renderInput={(params) => <TextField {...params} fullWidth />}
-                />
-              </LocalizationProvider>
-              <Button variant="contained" onClick={handleAddItem} sx={{ alignSelf: 'flex-start' }}>
-                Add
-              </Button>
-            </Stack>
-          </Box>
-        </Modal>
+          <Typography id="modal-modal-title" variant="h6" component="h2">
+            Add Item
+          </Typography>
+          <Stack spacing={2} sx={{ width: '100%' }}>
+            <Box 
+              sx={{ 
+                display: 'flex', 
+                flexDirection: { xs: 'column', sm: 'row' }, // Stack items vertically on small screens
+                alignItems: { xs: 'flex-start', sm: 'center' }, // Align items at the start on small screens
+                gap: 2 // Add spacing between items in the column layout
+              }}
+            >
+              <Autocomplete
+                freeSolo
+                id="free-solo-2-demo"
+                disableClearable
+                options={foodOptions}
+                value={itemName}
+                onChange={(event, newValue) => setItemName(newValue || '')}
+                onInputChange={(event, newInputValue) => setItemName(newInputValue)}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Item"
+                    InputProps={{ ...params.InputProps, type: 'search' }}
+                    sx={{ width: '300px', maxWidth: 100 }}
+                  />
+                )}
+              />
+              <TextField
+                label="Count"
+                type="number"
+                value={itemCount}
+                onChange={(e) => setItemCount(Number(e.target.value))}
+                InputProps={{ inputProps: { min: 1 } }}
+                sx={{ width: '100px', maxWidth: 100 }}
+              />
+            </Box>
+            <LocalizationProvider dateAdapter={AdapterDateFns}>
+              <MuiDatePicker
+                label="Expiration Date"
+                value={itemExpirationDate}
+                onChange={(newValue) => setItemExpirationDate(newValue)}
+                renderInput={(params) => <TextField {...params} fullWidth />}
+              />
+            </LocalizationProvider>
+            <Button variant="contained" onClick={handleAddItem} sx={{ alignSelf: { xs: 'stretch', sm: 'flex-start' } }}>
+              Add
+            </Button>
+          </Stack>
+        </Box>
+      </Modal>
         <Box
           display="flex"
           flexDirection="column"
-          overflow="auto"
           gap={2}
-          paddingX={2}
           width="100%"
           alignItems="center"
+          sx={{
+            '@media (max-width: 600px)': {
+              flexDirection: 'column'
+            }
+          }}
         >
           <Box
             display="flex"
-            width="100%"
-            justifyContent="space-between"
+            flexDirection="column"
             gap={2}
-            paddingX={2}
+            width="100%"
+            alignItems="center"
+            sx={{
+              '@media (max-width: 600px)': {
+                gap: 1
+              }
+            }}
           >
-            <Button variant="contained" onClick={handleOpen}>Add Items</Button>
-            <TextField
-              label="Search Pantry"
-              variant="outlined"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              sx={{ flex: 1 }}
-            />
-            <Button variant="contained" onClick={handleRecipesSearch}>Search Recipes</Button>
-          </Box>
-          <Box border="1px solid #333">
             <Box
-              width="800px"
+              display="flex"
+              flexDirection={{ xs: 'column', sm: 'row' }}
+              gap={2}
+              width="100%"
+              alignItems="center"
+              sx={{ 
+                maxWidth: '500px',
+                flexDirection: { xs: 'column', sm: 'row' }
+              }}
+            >
+              <Button 
+                variant="contained" 
+                onClick={handleOpen}
+                sx={{ width: { xs: '100%', sm: '150px', maxWidth: '150px' } }}
+              >
+                Add Items
+              </Button>
+              <TextField
+                label="Search Pantry"
+                variant="outlined"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                sx={{ flexGrow: 1 }}
+              />
+            </Box>
+          </Box>
+          <Box
+            border="1px solid #333"
+            width="100%"
+            maxWidth="800px"
+            minHeight="300px"  // Ensure minimum height of 300px
+            maxHeight="400px"  // Optional: Limit the height to 400px for more consistent behavior
+            sx={{
+              '@media (max-width: 600px)': {
+                marginTop: 2
+              }
+            }}
+          >
+            <Box
+              width="100%"
               height="100px"
               bgcolor="#1976d2"
               display="flex"
@@ -278,7 +343,7 @@ const Page = () => {
               alignItems="center"
             >
               <Typography
-                variant="h2"
+                variant="h3"
                 color="#fff"
                 textAlign="center"
               >
@@ -286,10 +351,11 @@ const Page = () => {
               </Typography>
             </Box>
             <Stack
-              width="800px"
-              height="200px"
+              width="100%"
+              maxWidth="800px"
               spacing={2}
               overflow="auto"
+              sx={{ height: 'calc(100% - 100px)' }} // Ensure content area fills remaining space
             >
               {filteredPantry && Array.isArray(filteredPantry) && filteredPantry.map((item) => (
                 <Box
@@ -335,20 +401,29 @@ const Page = () => {
               ))}
             </Stack>
           </Box>
+          <Button 
+            variant="contained" 
+            onClick={handleRecipesSearch}
+            sx={{ width: '100%', maxWidth: '300px', marginTop: 2 }}
+          >
+            Search Recipes
+          </Button>
           {loading ? (
-            <Box display="flex" justifyContent="center" alignItems="center">
+            <Box display="flex" justifyContent="center" alignItems="center" gap={2}>
               <CircularProgress />
-              <Typography variant="h6" marginLeft={2}>Generating recipe...</Typography>
+              <Typography variant="h6">Generating recipe...</Typography>
             </Box>
           ) : (
             recipeSuggestions && (
               <Box 
                 border="1px solid #333" 
                 padding={2} 
-                width="800px" 
+                width="100%" 
+                maxWidth="800px" 
                 bgcolor="#f9f9f9"
                 maxHeight="400px"
                 overflow="auto"
+                sx={{ marginTop: 2 }}
               >
                 <Typography variant="h5">Recipe Suggestions:</Typography>
                 <Typography>{recipeSuggestions}</Typography>

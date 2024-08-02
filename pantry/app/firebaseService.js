@@ -44,7 +44,17 @@ export const addItemToPantry = async (item, count = 1, userId, expirationDate) =
 
       await updateDoc(existingItem.ref, { versions: newVersions });
     } else {
-      // Create new item
+      // Check if the item exists in the "items" collection
+      const itemsRef = collection(firestore, 'items');
+      const itemQuery = query(itemsRef, where("name", "==", item));
+      const itemSnapshot = await getDocs(itemQuery);
+
+      if (itemSnapshot.empty) {
+        // Item does not exist in the "items" collection, add it
+        await setDoc(doc(itemsRef, item), { name: item });
+      }
+
+      // Create new item in the "pantry" collection
       const newItem = {
         name: item,
         count,
