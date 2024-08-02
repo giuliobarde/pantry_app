@@ -1,5 +1,7 @@
 "use client";
 
+import Alert from '@mui/material/Alert';
+
 import React, { useState, useEffect } from 'react';
 import { Box, Stack, Typography, Button, Modal, Autocomplete, TextField, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions } from "@mui/material";
 import { fetchFoodSuggestions, addItemToPantry, removeItemFromPantry, listenToPantry } from "@/app/firebaseService";

@@ -13,22 +13,22 @@
     "@emotion/react": "^11.13.0",
     "@emotion/styled": "^11.13.0",
     "@mui/material": "^5.16.5",
-    "@mui/x-date-pickers": "^5.0.20",
+    "@mui/x-date-pickers": "^7.12.0",
     "@mui/x-date-pickers-pro": "^7.12.0",
     "axios": "^1.7.2",
     "bcryptjs": "^2.4.3",
     "date-fns": "^2.30.0",
     "dotenv": "^16.4.5",
-    "firebase": "^10.12.4",
+    "firebase": "^9.23.0",
     "next": "^14.2.5",
-    "openai": "^3.3.0",
+    "openai": "^4.54.0",
     "react": "^18",
     "react-dom": "^18",
     "react-firebase-hooks": "^5.1.1",
     "reactfire": "^4.2.3"
   },
   "devDependencies": {
-    "eslint": "^8",
+    "eslint": "^8.57.0",
     "eslint-config-next": "14.2.5"
   }
 }

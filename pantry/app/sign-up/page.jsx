@@ -1,5 +1,7 @@
 "use client";
 
+import Alert from '@mui/material/Alert';
+
 import { useState } from 'react';
 import { Container, TextField, Button, Typography, Box, Link } from '@mui/material';
 import { signUpUser } from '@/app/firebaseService';
