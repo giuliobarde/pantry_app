@@ -9,7 +9,7 @@ import ApiService from '@/api';
 import { useAuthState } from "react-firebase-hooks/auth";
 import { auth } from '@/firebase';
 import { useRouter } from 'next/navigation';
-import { Navbar } from 'react-bootstrap';
+import Navbar from 'react-bootstrap/Navbar';
 import { signOut } from 'firebase/auth';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { LocalizationProvider, DatePicker as MuiDatePicker } from '@mui/x-date-pickers';
