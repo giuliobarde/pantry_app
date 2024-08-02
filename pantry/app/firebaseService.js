@@ -59,32 +59,46 @@ export const addItemToPantry = async (item, count = 1, userId, expirationDate) =
 };
 
 // Remove specific version of an item from pantry
-export const removeItemFromPantry = async (itemName, userId, expirationDate) => {
+export const removeItemFromPantry = async (item, count = 1, userId) => {
   try {
-    if (!(expirationDate instanceof Date)) {
-      throw new Error("Invalid expiration date format.");
-    }
-
     const pantryRef = collection(firestore, 'pantry');
-    const itemQuery = query(pantryRef, where("name", "==", itemName), where("userId", "==", userId));
+    const itemQuery = query(pantryRef, where("name", "==", item), where("userId", "==", userId));
     const querySnapshot = await getDocs(itemQuery);
 
-    const expirationDateStr = expirationDate.toISOString(); // Convert to string for comparison
+    if (querySnapshot.empty) {
+      throw new Error("Item not found in pantry.");
+    }
 
-    querySnapshot.forEach(async (doc) => {
-      const data = doc.data();
-      if (data.versions) {
-        const updatedVersions = data.versions.filter(version => version.expirationDate !== expirationDateStr);
+    const existingItem = querySnapshot.docs[0];
+    const data = existingItem.data();
+    const newVersions = data.versions || [];
 
-        if (updatedVersions.length === 0) {
-          await deleteDoc(doc.ref);
-        } else {
-          await updateDoc(doc.ref, { versions: updatedVersions });
-        }
-      }
-    });
+    // Sort versions by expiration date to find the closest one
+    newVersions.sort((a, b) => new Date(a.expirationDate) - new Date(b.expirationDate));
+
+    if (newVersions.length === 0) {
+      throw new Error("No versions found for the item.");
+    }
+
+    const closestVersion = newVersions[0];
+    
+    if (count >= closestVersion.quantity) {
+      // Remove the version if the quantity to remove is greater than or equal to the available quantity
+      newVersions.shift();
+    } else {
+      // Decrease the quantity of the closest version
+      closestVersion.quantity -= count;
+    }
+
+    if (newVersions.length === 0) {
+      // Remove the entire item if no versions are left
+      await deleteDoc(existingItem.ref);
+    } else {
+      await updateDoc(existingItem.ref, { versions: newVersions });
+    }
+    
   } catch (error) {
-    console.error("Error removing item:", error);
+    console.error("Error removing item from pantry:", error);
   }
 };
 

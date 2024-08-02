@@ -18,6 +18,8 @@ const Page = () => {
   const [redirectToSignIn, setRedirectToSignIn] = useState(false);
   const [pantry, setPantry] = useState([]);
   const [foodOptions, setFoodOptions] = useState([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filteredPantry, setFilteredPantry] = useState([]);
   const [open, setOpen] = useState(false);
   const [itemName, setItemName] = useState('');
   const [itemCount, setItemCount] = useState(1);
@@ -53,6 +55,17 @@ const Page = () => {
       setRedirectToSignIn(true);
     }
   }, [user]);
+
+  useEffect(() => {
+    if (searchQuery.trim() === '') {
+      setFilteredPantry(pantry);
+    } else {
+      const queryLower = searchQuery.toLowerCase();
+      setFilteredPantry(pantry.filter(item =>
+        item.name.toLowerCase().includes(queryLower)
+      ));
+    }
+  }, [searchQuery, pantry]);
 
   const handleOpen = () => setOpen(true);
   const handleClose = () => {
@@ -143,6 +156,7 @@ const Page = () => {
           position: 'fixed', 
           top: 0, 
           width: '100%', 
+          height: '70px',
           zIndex: 1000,
           backgroundColor: 'black',
           padding: '0 16px',
@@ -245,6 +259,13 @@ const Page = () => {
             paddingX={2}
           >
             <Button variant="contained" onClick={handleOpen}>Add Items</Button>
+            <TextField
+              label="Search Pantry"
+              variant="outlined"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              sx={{ flex: 1 }}
+            />
             <Button variant="contained" onClick={handleRecipesSearch}>Search Recipes</Button>
           </Box>
           <Box border="1px solid #333">
@@ -270,35 +291,42 @@ const Page = () => {
               spacing={2}
               overflow="auto"
             >
-              {pantry && Array.isArray(pantry) && pantry.map((item) => (
+              {filteredPantry && Array.isArray(filteredPantry) && filteredPantry.map((item) => (
                 <Box
                   key={item.id}
                   width="100%"
                   height="auto"
                   display="flex"
-                  flexDirection="column"
+                  flexDirection="row"
+                  justifyContent={'space-between'}
                   padding={2}
                   bgcolor="#f0f0f0"
                   onClick={() => handleItemClick(item)}
                 >
-                  <Typography
-                    variant="h3"
-                    color="#333"
-                    textAlign="center"
+                  <Box
+                    display="flex"
+                    flexDirection="column"
                   >
-                    {item.name.charAt(0).toUpperCase() + item.name.slice(1).toLowerCase()}
-                  </Typography>
-                  {item.versions && Array.isArray(item.versions) && item.versions.map((version) => (
-                    <Box key={version.id} display="flex" justifyContent="space-between" paddingY={1}>
-                      <Typography>{`Quantity: ${version.quantity}`}</Typography>
-                      <Typography>{`Expiration Date: ${version.expirationDate ? new Date(version.expirationDate).toLocaleDateString() : 'N/A'}`}</Typography>
-                    </Box>
-                  ))}
+                    <Typography
+                      variant="h5"
+                      color="#333"
+                      textAlign="center"
+                    >
+                      {item.name.charAt(0).toUpperCase() + item.name.slice(1).toLowerCase()}
+                    </Typography>
+                    {item.versions && Array.isArray(item.versions) && (
+                      <Box display="flex" justifyContent="space-between" paddingY={1}>
+                        <Typography>{`Quantity: ${item.versions?.reduce((sum, version) => sum + version.quantity, 0) || 0}`}</Typography>
+                      </Box>
+                    )}
+                  </Box>
                   <Button 
-                    variant="contained" 
+                    variant="contained"
                     onClick={(e) => { 
-                      e.stopPropagation(); 
-                      removeItemFromPantry(item.name, user.uid, version.expirationDate); 
+                      e.stopPropagation();
+                      const sortedVersions = item.versions.sort((a, b) => new Date(a.expirationDate) - new Date(b.expirationDate));
+                      const closestVersion = sortedVersions[0];
+                      removeItemFromPantry(item.name, 1, user.uid, closestVersion.expirationDate); 
                     }}
                   >
                     Remove
@@ -359,4 +387,3 @@ const Page = () => {
 };
 
 export default Page;
-
