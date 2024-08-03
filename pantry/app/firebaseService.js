@@ -2,6 +2,22 @@ import { firestore, auth } from "@/firebase";
 import { collection, query, getDocs, onSnapshot, setDoc, doc, deleteDoc, getDoc, where, updateDoc } from "firebase/firestore";
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
 
+// Fetch username
+export const fetchUsername = async (user) => {
+  if (user) {
+    const userId = user.uid;
+    const userDoc = await getDoc(doc(firestore, "users", userId));
+    if (userDoc.exists()) {
+      return userDoc.data().username;
+    } else {
+      console.error('No such user document!');
+    }
+  } else {
+    console.error('User is not defined!');
+  }
+  return null;
+};
+
 // Fetch food suggestions in real-time
 export const fetchFoodSuggestions = (callback) => {
   return onSnapshot(query(collection(firestore, "items")), (snapshot) => {
@@ -44,17 +60,7 @@ export const addItemToPantry = async (item, count = 1, userId, expirationDate) =
 
       await updateDoc(existingItem.ref, { versions: newVersions });
     } else {
-      // Check if the item exists in the "items" collection
-      const itemsRef = collection(firestore, 'items');
-      const itemQuery = query(itemsRef, where("name", "==", item));
-      const itemSnapshot = await getDocs(itemQuery);
-
-      if (itemSnapshot.empty) {
-        // Item does not exist in the "items" collection, add it
-        await setDoc(doc(itemsRef, item), { name: item });
-      }
-
-      // Create new item in the "pantry" collection
+      // Create new item
       const newItem = {
         name: item,
         count,
@@ -111,7 +117,6 @@ export const removeItemFromPantry = async (item, count = 1, userId) => {
     console.error("Error removing item from pantry:", error);
   }
 };
-
 // Listen to pantry changes
 export const listenToPantry = (userId, callback) => {
   return onSnapshot(query(collection(firestore, 'pantry'), where("__name__", ">=", `${userId}_`), where("__name__", "<", `${userId}_\uf8ff`)), (snapshot) => {
