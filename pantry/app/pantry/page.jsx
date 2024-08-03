@@ -94,40 +94,49 @@ const Page = () => {
 
   const handleRecipesSearch = async () => {
     if (user) {
-      if (pantry.length === 0) {
-        window.location.href = 'https://www.google.com/maps/search/restaurants';
-        return;
-      }
+        if (pantry.length === 0) {
+            window.location.href = 'https://www.google.com/maps/search/restaurants';
+            return;
+        }
 
-      setLoading(true);
-      setRecipeSuggestions('');
+        setLoading(true);
+        setRecipeSuggestions('');
 
-      const ingredients = pantry.flatMap(item =>
-        item.versions?.map(v => v.name?.toLowerCase() || '') || []
-      );
-      try {
-        const response = await apiService.fetchRecipeSuggestions(ingredients);
-        const recipeSuggestions = response.choices && response.choices.length > 0
-            ? response.choices[0].text // Adjust this based on the actual structure
-            : 'No recipes found';
-        const cleanedRecipeSuggestions = cleanRecipeOutput(recipeSuggestions);
-        setRecipeSuggestions(cleanedRecipeSuggestions);
-      } catch (error) {
-        console.error('Failed to fetch recipe suggestions:', error);
-        setRecipeSuggestions('Failed to fetch recipe suggestions.');
-      } finally {
-        setLoading(false);
+        // Collect ingredients from pantry and ensure it's an array of strings
+        const ingredients = pantry.flatMap(item =>
+            item.versions?.map(v => v.name?.toLowerCase() || '') || []
+        );  // Creating an array of ingredient names
+
+        try {
+            const response = await apiService.fetchRecipeSuggestions(ingredients);
+
+            // Ensure you correctly handle the response
+            const recipeSuggestions = response.choices && response.choices.length > 0
+                ? response.choices[0].text
+                : 'No recipes found';
+            const cleanedRecipeSuggestions = cleanRecipeOutput(recipeSuggestions);
+            setRecipeSuggestions(cleanedRecipeSuggestions);
+        } catch (error) {
+            console.error('Failed to fetch recipe suggestions:', error);
+            setRecipeSuggestions('Failed to fetch recipe suggestions.');
+        } finally {
+            setLoading(false);
+        }
       }
-    }
   };
 
   const cleanRecipeOutput = (text) => {
-    const lines = text.split('\n');
-    const recipeLines = lines.filter(line => {
-      return line.trim() !== '' && !line.startsWith('Tips:') && !line.includes('.....') && !line.includes('(') && !line.includes(')') && !line.includes('[') && !line.includes(']');
-    });
-    return recipeLines.join('\n');
-  };
+    // Adjust cleaning rules as needed
+    return text
+        .split('\n')
+        .filter(line => {
+            const trimmedLine = line.trim();
+            return trimmedLine !== '' && !line.startsWith('Tips:') && 
+                   !line.includes('.....') && !/\[.*?\]/.test(line) && 
+                   !/\(.*?\)/.test(line);
+        })
+        .join('\n');
+  };  
 
   const handleSignOut = async () => {
     try {
