@@ -160,7 +160,7 @@ const Page = () => {
       overflow="auto"
       gap={2}
     >
-      <AppBar position="fixed" sx={{ backgroundColor: 'black' }}>
+      <AppBar position="fixed" sx={{ backgroundColor: 'black' }}git >
         <Toolbar>
           <Typography variant="h6" color="inherit" style={{ flexGrow: 1 }}>
             Pantr<span style={{ color: '#1976d2' }}>AI</span>
@@ -170,7 +170,7 @@ const Page = () => {
             onClick={handleSignOut}
             color="primary"
           >
-            Log out
+            test
           </Button>
         </Toolbar>
       </AppBar>
