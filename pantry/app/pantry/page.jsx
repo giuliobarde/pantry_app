@@ -170,7 +170,7 @@ const Page = () => {
             onClick={handleSignOut}
             color="primary"
           >
-            test
+            Log out
           </Button>
         </Toolbar>
       </AppBar>
